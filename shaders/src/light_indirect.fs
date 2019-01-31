@@ -190,6 +190,17 @@ vec3 specularDFG(const PixelParams pixel) {
 #endif
 }
 
+#if defined(MATERIAL_HAS_SHEEN)
+vec3 sheenDFG(const PixelParams pixel) {
+#if CLOTH_DFG == CLOTH_DFG_ASHIKHMIN
+    vec2 dfg = PrefilteredDFG_Cloth_Ashikhmin(pixel.sheen, shading_NoV);
+#elif CLOTH_DFG == CLOTH_DFG_CHARLIE
+    vec2 dfg = PrefilteredDFG_Cloth_Charlie(pixel.sheen, shading_NoV);
+#endif
+    return pixel.sheenColor * dfg.x + dfg.y;
+}
+#endif
+
 /**
  * Returns the reflected vector at the current shading point. The reflected vector
  * return by this function might be different from shading_reflected:
@@ -448,7 +459,10 @@ void evaluateIBL(const MaterialInputs material, const PixelParams pixel, inout v
     // specular indirect
     vec3 Fr;
 #if IBL_INTEGRATION == IBL_INTEGRATION_PREFILTERED_CUBEMAP
-    Fr = specularDFG(pixel) * specularIrradiance(r, pixel.roughness);
+    Fr  = specularDFG(pixel) * specularIrradiance(r, pixel.roughness);
+#if defined(MATERIAL_HAS_SHEEN)
+    Fr += sheenDFG(pixel) * specularIrradiance(r, pixel.sheen);
+#endif
     Fr *= specularAO * pixel.energyCompensation;
     evaluateClearCoatIBL(pixel, specularAO, Fd, Fr);
 #elif IBL_INTEGRATION == IBL_INTEGRATION_IMPORTANCE_SAMPLING
