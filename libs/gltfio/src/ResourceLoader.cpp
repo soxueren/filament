@@ -31,6 +31,8 @@
 
 #include <cgltf.h>
 
+#include <stb_image.h>
+
 #include <tsl/robin_map.h>
 
 #include <string>
@@ -99,10 +101,10 @@ ResourceLoader::~ResourceLoader() {
 bool ResourceLoader::loadResources(FilamentAsset* asset) {
     FFilamentAsset* fasset = upcast(asset);
     mCache->addAsset(fasset);
+    auto gltf = (cgltf_data*) fasset->mSourceAsset;
 
     // Read data from the file system and base64 URLs.
     cgltf_options options {};
-    auto gltf = (cgltf_data*) fasset->mSourceAsset;
     cgltf_result result = cgltf_load_buffers(&options, gltf, mBasePath.c_str());
     if (result != cgltf_result_success) {
         slog.e << "Unable to load resources." << io::endl;
@@ -136,6 +138,30 @@ bool ResourceLoader::loadResources(FilamentAsset* asset) {
     if (fasset->mOrientationBuffer.size() > 0) {
         computeTangents(fasset);
     }
+
+    // Decode textures.
+    const TextureBinding* texbindings = asset->getTextureBindings();
+    for (size_t i = 0, n = asset->getTextureBindingCount(); i < n; ++i) {
+        auto tb = texbindings[i];
+        stbi_uc* texels;
+        int width, height, comp;
+        if (tb.data) {
+            texels = stbi_load_from_memory((const stbi_uc*) *tb.data, tb.totalSize,
+                    &width, &height, &comp, 4);
+        } else {
+            utils::Path fullpath = this->mBasePath + tb.uri;
+            texels = stbi_load(fullpath.c_str(), &width, &height, &comp, 4);
+        }
+        if (!texels) {
+            slog.e << "Unable to decode texture: " << tb.uri << io::endl;
+            return false;
+        }
+
+        // TODO: create Filament texture
+
+        stbi_image_free(texels);
+    }
+
     return true;
 }
 

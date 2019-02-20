@@ -48,7 +48,6 @@ class BlobCache;
  * listens to BufferDescriptor callbacks in order to determine when to free CPU-side data blobs.
  *
  * TODO: the GPU upload is asynchronous but the load-from-disk and image decode is not.
- * TODO: using this class is required for proper tangent quaternions, ideally it would be optional.
  */
 class ResourceLoader {
 public:

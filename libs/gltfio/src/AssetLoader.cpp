@@ -567,9 +567,12 @@ void FAssetLoader::addTextureBinding(MaterialInstance* materialInstance, const c
         dstSampler.setMagFilter(getMagFilter(srcSampler->mag_filter));
         dstSampler.setMinFilter(getMinFilter(srcSampler->min_filter));
     }
+    auto bv = srcTexture->image->buffer_view;
     mResult->mTextureBindings.push_back(TextureBinding {
         .uri = srcTexture->image->uri,
+        .totalSize = uint32_t(bv ? bv->buffer->size : 0),
         .mimeType = srcTexture->image->mime_type,
+        .data = bv ? &bv->buffer->data : nullptr,
         .materialInstance = materialInstance,
         .materialParameter = parameterName,
         .sampler = dstSampler
